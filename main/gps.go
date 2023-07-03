@@ -308,8 +308,8 @@ func initGPSSerial() bool {
 		// sampling rates.
 
 		// load default configuration             |      clearMask     |  |     saveMask       |  |     loadMask       |  deviceMask
-		//p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
-		//time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
+		p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
+		time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
 		if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
 			if globalSettings.DEBUG {
@@ -454,9 +454,9 @@ func writeUblox8ConfigCommands(p *serial.Port) {
 	gps     := []byte{0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GPS with 8-16 channels (ublox default)
 	sbas    := []byte{0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable SBAS with 1-3 channels (ublox default)
 	galileo := []byte{0x02, 0x08, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01} // enable Galileo with 8-8 channels (ublox default: disabled and 4-8 channels)
-	beidou  := []byte{0x03, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // disable BEIDOU
+	beidou  := []byte{0x03, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable BEIDOU with 8-16 channels
 	qzss    := []byte{0x05, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01} // enable QZSS 1-3 channels, L1C/A (ublox default: 0-3 channels)
-	glonass := []byte{0x06, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01} // enable GLONASS with 8-16 channels (ublox default: 8-14 channels)
+	glonass := []byte{0x06, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01} // disable GLONASS
 	
 	cfgGnss = append(cfgGnss, gps...)
 	cfgGnss = append(cfgGnss, sbas...)
@@ -489,17 +489,6 @@ func writeUblox9ConfigCommands(p *serial.Port) {
 }
 
 func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
-	// UBX-CFG-TP5 (turn off "time pulse" which usually drives the GPS LED)
-	tp5 := make([]byte, 32)
-	tp5[4] = 0x32
-	tp5[8] = 0x40
-	tp5[9] = 0x42
-	tp5[10] = 0x0F
-	tp5[12] = 0x40
-	tp5[13] = 0x42
-	tp5[14] = 0x0F
-	tp5[28] = 0xE7
-	p.Write(makeUBXCFG(0x06, 0x31, 32, tp5))
 
 	// UBX-CFG-NMEA (change NMEA protocol version to 4.0 extended)
 	p.Write(makeUBXCFG(0x06, 0x17, 20, []byte{0x00, 0x40, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
@@ -1450,14 +1439,14 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 			return false
 		}
 		if tmpSituation.GPSFixQuality == 2 { // Rough 95% confidence estimate for SBAS solution
-			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {			
-				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9
+			if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL)) {			
+				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9 (or 10 for SoftRF on T-Beam-S3Core)
 			} else {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0)	// ublox 6/7/8
 			}
 		} else { // Rough 95% confidence estimate non-SBAS solution
-			if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
-				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9
+			if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL)) {
+				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9 (or 10 for SoftRF on T-Beam-S3Core)
 			} else {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0)	// ublox 6/7/8
 			}
