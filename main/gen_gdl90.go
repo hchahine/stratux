@@ -761,22 +761,16 @@ func blinkStatusLED() {
 	}
 }
 
-func sendAllOwnshipInfo() {
-	//log.Printf("Sending ownship info")
-	sendGDL90(makeHeartbeat(), time.Second, -20) // Highest priority, always needs to be send because we use it to detect when a client becomes available
-	sendGDL90(makeStratuxHeartbeat(), time.Second, 0)
-	sendGDL90(makeStratuxStatus(), time.Second, 0)
-	sendGDL90(makeFFIDMessage(), time.Second, 0)
-	makeOwnshipReport()
-	makeOwnshipGeometricAltitudeReport()
-}
-
 func heartBeatSender() {
-	timer := time.NewTicker(1 * time.Second)
+	timer := time.NewTicker(1 * time.Second) /* 1Hz traffic and heartbeats */
+	timerOwnship := time.NewTicker(200 * time.Millisecond) /* 5Hz ownship */
 	timerMessageStats := time.NewTicker(2 * time.Second)
 	ledBlinking := false
 	for {
 		select {
+		case <-timerOwnship.C:
+			makeOwnshipReport()
+			makeOwnshipGeometricAltitudeReport()		
 		case <-timer.C:
 			// Green LED - always on during normal operation.
 			//  Blinking when there is a critical system error (and Stratux is still running).
@@ -792,7 +786,10 @@ func heartBeatSender() {
 				ledBlinking = true
 			}
 
-			sendAllOwnshipInfo()
+			sendGDL90(makeHeartbeat(), time.Second, -20) // Highest priority, always needs to be send because we use it to detect when a client becomes available
+			sendGDL90(makeStratuxHeartbeat(), time.Second, 0)
+			sendGDL90(makeStratuxStatus(), time.Second, 0)
+			sendGDL90(makeFFIDMessage(), time.Second, 0)
 
 			sendNetFLARM(makeGPRMCString(), time.Second, -1)
 			sendNetFLARM(makeGPGGAString(), time.Second, 0)
