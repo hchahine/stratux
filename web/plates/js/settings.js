@@ -272,10 +272,8 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 	$http.get(URL_STATUS_GET).then(function(response) {
 		var status = angular.fromJson(response.data);
 		var gpsHardwareCode = (status.GPS_detected_type & 0x0f);
-		if (gpsHardwareCode == 3 || status.OGN_tx_enabled)
-			$scope.hasOgnTracker = true;
-		else
-			$scope.hasOgnTracker = false;
+		$scope.hasOgnTracker = gpsHardwareCode == 3 || status.OGN_tx_enabled;
+		$scope.hasGXTracker = gpsHardwareCode == 15;
 	});
 
 	function loadSettings(data) {
@@ -341,6 +339,11 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		$scope.OGNPilot = settings.OGNPilot;
 		$scope.OGNReg = settings.OGNReg;
 		$scope.OGNTxPower = settings.OGNTxPower;
+
+		$scope.GXAcftType = settings.GXAcftType;
+		$scope.GXPilot = settings.GXPilot;
+		$scope.GXAddr = settings.GXAddr.toString(16);
+		$scope.GXAddrType = settings.GXAddrType.toString();
 
 		$scope.PWMDutyMin = settings.PWMDutyMin;
 
@@ -671,6 +674,21 @@ function SettingsCtrl($rootScope, $scope, $state, $location, $window, $http) {
 		setTimeout(function() {
 			getSettings();
 		}, 1000);
+	}
+
+	$scope.updateGXTrackerConfig = function(action) {
+		var newsettings = {
+			"GXAddr": $scope.GXAddr,
+			"GXAddrType": parseInt($scope.GXAddrType),
+			"GXAcftType": parseInt($scope.GXAcftType),
+			"GXPilot": $scope.GXPilot,
+		};
+		setSettings(angular.toJson(newsettings));
+
+		// reload settings after a short time, to check if GX tracker actually accepted the settings
+		setTimeout(function() {
+			getSettings();
+		}, 5000);
 	}
 }
 

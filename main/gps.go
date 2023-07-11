@@ -143,6 +143,7 @@ var readyToInitGPS bool //TODO: replace with channel control to terminate gorout
 var Satellites map[string]SatelliteInfo
 
 var ognTrackerConfigured = false;
+var gxAirComTrackerConfigured = false;
 
 /*
 u-blox5_Referenzmanual.pdf
@@ -559,6 +560,42 @@ func configureOgnTracker() {
 	serialPort.Flush()
 
 	globalStatus.GPS_detected_type = GPS_TYPE_OGNTRACKER
+}
+
+func requestGxAirComTrackerConfig() {
+	if serialPort == nil {
+		return
+	}
+	serialPort.Write([]byte(appendNmeaChecksum("$PGXCF,?") + "\r\n")) // Request configuration
+	serialPort.Flush()
+}
+
+func configureGxAirComTracker() {
+	if serialPort == nil {
+		return
+	}
+
+	// $PGXCF,<version>,<Output Serial>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name> 
+	//  0      1         2               3              4              5            6              7                 8                     9              10              11      12
+	requiredSentence := fmt.Sprintf("$PGXCF,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%06X,%s",
+		1,  // PGXCF Version
+		0,  // Serial out
+		0,  // Airmode
+		0,  // Vario disabled // 0=noVario, 1= LK8EX1, 2=LXPW
+		1,  // Fanet
+		1,  // GPS
+		1,  // Flarm
+		1,  // Stratux NMEA
+		globalSettings.GXAcftType,
+		globalSettings.GXAddrType,
+		globalSettings.GXAddr,
+		globalSettings.GXPilot)
+
+	fullSentence := appendNmeaChecksum(requiredSentence)
+	log.Printf("Configuring GxAirCom Tracker with: " + fullSentence)
+	serialPort.Write([]byte(fullSentence + "\r\n")) // Set configuration
+	serialPort.Flush()
+	gxAirComTrackerConfigured = false
 }
 
 // func validateNMEAChecksum determines if a string is a properly formatted NMEA sentence with a valid checksum.
@@ -1260,7 +1297,13 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 				if time.Since(gpsTime) > 300*time.Millisecond || time.Since(gpsTime) < -300*time.Millisecond {
 					setStr := gpsTime.Format("20060102 15:04:05.000") + " UTC"
 					log.Printf("setting system time from %s to: '%s'\n", time.Now().Format("20060102 15:04:05.000"), setStr)
-					if err := exec.Command("date", "-s", setStr).Run(); err != nil {
+					var err error
+					if common.IsRunningAsRoot() {
+						err = exec.Command("date", "-s", setStr).Run()
+					} else {
+						err = exec.Command("sudo", "date", "-s", setStr).Run()
+					}					
+					if err != nil {
 						log.Printf("Set Date failure: %s error\n", err)
 					} else {
 						log.Printf("Time set from GPS. Current time is %v\n", time.Now())
@@ -1702,6 +1745,54 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 		}
 	}
 
+    // Only sent by GxAirCOm tracker. We use this to detect that GxAirCom tracker is connected and configure it as needed
+    if x[0] == "PFLAV" && x[4] == "GXAircom" {
+        if !gxAirComTrackerConfigured {
+			gpsTimeOffsetPpsMs = 130 * time.Millisecond
+			globalStatus.GPS_detected_type = GPS_TYPE_GXAIRCOM
+			gxAirComTrackerConfigured = true
+            go func() {
+                requestGxAirComTrackerConfig()
+			}()
+        }
+
+        return true
+    }
+
+    if x[0] == "PGXCF" && x[1] == "1" {
+		// $PGXCF,<version>,<Output Serial>,<eMode>,<eOutputVario>,<output Fanet>,<output GPS>,<output FLARM>,<customGPSConfig>,<Aircraft Type (hex)>,<Address Type>,<Address (hex)>,<Pilot Name> 
+		//  0      1         2               3       4              5            6              7                 8                     9              10              11             12
+		log.Printf("Received GxAirCom Tracker configuration: " + strings.Join(x, ","))
+
+		GXAcftType,_ := strconv.ParseInt(x[9], 16, 0)
+		if (globalSettings.GXAcftType==0) {
+			globalSettings.GXAcftType = int(GXAcftType)
+		}
+
+		GXAddrType,_ := strconv.Atoi(x[10]) 
+		if (globalSettings.GXAddrType==0) {
+			globalSettings.GXAddrType = GXAddrType
+		}
+
+		GXAddr,_ := strconv.ParseInt(x[11], 16, 0)
+		if (globalSettings.GXAddr==0) {
+			globalSettings.GXAddr = int(GXAddr)
+		}
+
+		if (globalSettings.GXPilot=="") {
+			globalSettings.GXPilot = x[12]
+		}
+
+        if (x[2] != "0" || x[5] == "0" || x[6] == "0" || x[7] == "0" || x[8] == "0" || 
+			int(GXAcftType) != globalSettings.GXAcftType || int(GXAddrType) != globalSettings.GXAddrType || int(GXAddr) != globalSettings.GXAddr) {
+			configureGxAirComTracker()
+        } else {
+			log.Printf("GxAirCom tracker configuration ok!")
+		}
+
+        return true
+    }
+
 	// Only evaluate PGRMZ for SoftRF/Flarm, where we know that it is standard barometric pressure.
 	// might want to add more types if applicable.
 	// $PGRMZ,1089,f,3*2B
@@ -1762,8 +1853,6 @@ func configureOgnTrackerFromSettings() {
 	serialPort.Write([]byte(getOgnTrackerConfigQueryString())) // re-read settings from tracker
 	serialPort.Flush()
 }
-
-
 
 var gnssBaroAltDiffs = make(map [int]int)
 // Little helper function to dump the gnssBaroAltDiffs map to CSV for plotting

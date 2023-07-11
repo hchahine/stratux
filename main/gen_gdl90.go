@@ -46,7 +46,8 @@ var logDirf string      // Directory for all logging
 var dataLogFilef string // Set according to OS config.
 
 const (
-	STRATUX_HOME   = "/opt/stratux/"
+	STRATUX_HOME_PROD  = "/opt/stratux/"
+	STRATUX_HOME_DEV   = "/home/pi/stratux/" // Only fallback, usually we try to determine the binary's dir
 	configLocation = "/boot/stratux.conf"
 	managementAddr = ":80"
 	logDir         = "/var/log/"
@@ -100,6 +101,7 @@ const (
 	GPS_TYPE_UART     = 0x01
 	GPS_TYPE_SERIAL   = 0x0A
 	GPS_TYPE_OGNTRACKER = 0x03
+	GPS_TYPE_GXAIRCOM = 0x0F
 	GPS_TYPE_SOFTRF_DONGLE = 0x0B
 	GPS_TYPE_NETWORK  = 0x0C
 	GPS_PROTOCOL_NMEA = 0x10
@@ -107,6 +109,7 @@ const (
 
 )
 
+var STRATUX_HOME string
 
 var maxSignalStrength int
 
@@ -1202,6 +1205,12 @@ type settings struct {
 	OGNReg               string
 	OGNTxPower           int
 
+	// GxAirCom
+	GXAddr               int
+	GXAddrType           int            // 1=ICAO, 2=Flarm
+	GXAcftType           int
+	GXPilot              string
+
 	PWMDutyMin           int
 }
 
@@ -1581,6 +1590,18 @@ func main() {
 	go signalWatcher()
 
 	stratuxClock = NewMonotonic() // Start our "stratux clock".
+
+	if common.IsRunningAsRoot() {
+		STRATUX_HOME = STRATUX_HOME_PROD
+	} else {
+		ex, err := os.Executable()
+		if err == nil {
+			ex = filepath.Dir(ex)
+			STRATUX_HOME = ex
+		} else {
+			STRATUX_HOME = STRATUX_HOME_DEV
+		}
+	}
 
 	// Set up mySituation, do it here so logging JSON doesn't panic
 	mySituation.muGPS = &sync.Mutex{}
