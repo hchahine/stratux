@@ -73,7 +73,8 @@ type AISTermMessage struct {
 func (e *ES) read() {
 	defer e.wg.Done()
 	log.Println("Entered ES read() ...")
-	cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--fix", "--gain", "37.2", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
+	//cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--fix", "--gain", "37.2", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm))
+	cmd := exec.Command(STRATUX_HOME + "/bin/dump1090", "--fix", "--gain", "43.9", "--net-stratux-port", "30006",  "--net", "--device-index", strconv.Itoa(e.indexID), "--ppm", strconv.Itoa(e.ppm)) //HANI: Increase gain
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 
