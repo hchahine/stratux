@@ -312,13 +312,15 @@ func initGPSSerial() bool {
 		p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
 		time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
-		if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
+		// if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
+		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // HANI: assume that any GPS connected to serial GPIO is ublox9
 			if globalSettings.DEBUG {
 				log.Printf("ublox 9 detected\n")
 			}
 			// ublox 9
 			writeUblox9ConfigCommands(p)		
-		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // assume that any GPS connected to serial GPIO is ublox8 (RY835/6AI)
+		//} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { 
+		} else if (globalStatus.GPS_detected_type == GPS_TYPE_UBX8) { // HANI: DON'T ASSUME UART is ublox8
 			if globalSettings.DEBUG {
 				log.Printf("ublox 8 detected\n")
 			}
@@ -341,7 +343,8 @@ func initGPSSerial() bool {
 			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
 		}
 
-		writeUbloxGenericCommands(10, p)
+		//writeUbloxGenericCommands(10, p)
+		writeUbloxGenericCommands(5, p) // HANI: Change update rate to 5
 
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
