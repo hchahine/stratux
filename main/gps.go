@@ -309,8 +309,8 @@ func initGPSSerial() bool {
 		// sampling rates.
 
 		// load default configuration             |      clearMask     |  |     saveMask       |  |     loadMask       |  deviceMask
-		p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
-		time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
+		//p.Write(makeUBXCFG(0x06, 0x09, 13, []byte{0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03}))
+		//time.Sleep(100* time.Millisecond) // pause and wait for the GPS to finish configuring itself before closing / reopening the port
 
 		// if globalStatus.GPS_detected_type == GPS_TYPE_UBX9 {
 		if (globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_UART) { // HANI: assume that any GPS connected to serial GPIO is ublox9
@@ -1485,13 +1485,17 @@ func processNMEALineLow(l string, fakeGpsTimeToCurr bool) (sentenceUsed bool) {
 			return false
 		}
 		if tmpSituation.GPSFixQuality == 2 { // Rough 95% confidence estimate for SBAS solution
-			if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL)) {			
+			//if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL)) {	
+			// HANI: UART is assumed to be ublox9
+			if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL) || (globalStatus.GPS_detected_type == GPS_TYPE_UART)) { 		
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 3.0) 	// ublox 9 (or 10 for SoftRF on T-Beam-S3Core)
 			} else {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0)	// ublox 6/7/8
 			}
 		} else { // Rough 95% confidence estimate non-SBAS solution
-			if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL)) {
+			//if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL)) {
+			// HANI: UART is assumed to be ublox9
+			if ((globalStatus.GPS_detected_type == GPS_TYPE_UBX9) || (globalStatus.GPS_detected_type == GPS_TYPE_SERIAL) || (globalStatus.GPS_detected_type == GPS_TYPE_UART)) {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 4.0) 	// ublox 9 (or 10 for SoftRF on T-Beam-S3Core)
 			} else {
 				tmpSituation.GPSHorizontalAccuracy = float32(hdop * 5.0)	// ublox 6/7/8
