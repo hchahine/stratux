@@ -92,20 +92,31 @@ const (
 		GPS_TYPE_GARMIN   = 0x06
 	*/
 
-	GPS_TYPE_UBX9     = 0x09
-	GPS_TYPE_UBX8     = 0x08
-	GPS_TYPE_UBX7     = 0x07
-	GPS_TYPE_UBX6     = 0x06
-	GPS_TYPE_PROLIFIC = 0x02
-	GPS_TYPE_UART     = 0x01
-	GPS_TYPE_SERIAL   = 0x0A
-	GPS_TYPE_OGNTRACKER = 0x03
-	GPS_TYPE_GXAIRCOM = 0x0F
-	GPS_TYPE_SOFTRF_DONGLE = 0x0B
-	GPS_TYPE_NETWORK  = 0x0C
-	GPS_PROTOCOL_NMEA = 0x10
-	// other GPS types to be defined as needed
+	// for historical reasons lower nibbe contains gps type, upper nibble containsprotocol type. 
+	// Additionally this enumeration has a javascript duplicte in web/plates/js/status.js, they have to be kept in sync manually
+	// This is somewhat ugly but difficult to change without breaking backward compatibility
 
+	// lower nibble gps type   (dont forget to use only numbers form 0 to 15)
+	
+	GPS_TYPE_ANY     	= 1		// Any generic GPS - no reconfiguring applied
+	GPS_TYPE_PROLIFIC 	= 2
+	GPS_TYPE_OGNTRACKER = 3
+	GPS_TYPE_UBX_GEN  	= 4
+	GPS_TYPE_UBX10    	= 5	
+	//GPS_TYPE_UBX6     	= 6
+	GPS_TYPE_UBX6or7    = 7
+	GPS_TYPE_UBX8     	= 8
+	GPS_TYPE_UBX9     	= 9
+	GPS_TYPE_SERIAL   	= 10 		// 0x0A
+	GPS_TYPE_SOFTRF_DONGLE 	= 11	// 0x0B
+	GPS_TYPE_NETWORK  	= 12		// 0x0C
+	GPS_TYPE_GXAIRCOM 	= 15		// 0x0F
+	
+
+	// upper nibble is used for the protocol
+	GPS_PROTOCOL_NMEA = 0x10
+	
+	
 )
 
 var STRATUX_WWW_DIR = STRATUX_HOME + "www/"
@@ -1168,6 +1179,7 @@ type settings struct {
 	TraceLog             bool
 	AHRSLog              bool
 	PersistentLogging    bool
+	ClearLogOnStart      bool
 	IMUMapping           [2]int     // Map from aircraft axis to sensor axis: accelerometer
 	SensorQuaternion     [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	C, D                 [3]float64 // IMU Accel, Gyro zero bias
@@ -1210,6 +1222,12 @@ type settings struct {
 	GXPilot              string
 
 	PWMDutyMin           int
+
+	// manual GPS config  (versus autodetect)
+	GpsManualConfig      bool
+	GpsManualDevice	     string         // default: /dev/ttyAMA0
+    GpsManualChip        string         // ublox8, ublox9, ublox
+	GpsManualTargetBaud  int            // default: 115200
 }
 
 type status struct {
@@ -1314,6 +1332,13 @@ func defaultSettings() {
 	globalSettings.PWMDutyMin = 0
 
 	globalSettings.OGNI2CTXEnabled = true
+
+	globalSettings.ClearLogOnStart = true
+
+	globalSettings.GpsManualConfig = false
+	globalSettings.GpsManualDevice = "/dev/ttyAMA0"
+	globalSettings.GpsManualTargetBaud = 115200
+	globalSettings.GpsManualChip = "ublox"
 }
 
 func readSettings() {
@@ -1662,9 +1687,13 @@ func main() {
 	}
 
 	initLogging()
+	
 
 	// Read settings.
 	readSettings()
+
+	// Clear the logfile on startup
+	if globalSettings.ClearLogOnStart { clearDebugLogFile() }
 
 	log.Printf("Stratux %s (%s) starting.\n", stratuxVersion, stratuxBuild)
 	if *writeNetworkConfig {

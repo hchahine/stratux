@@ -164,3 +164,17 @@ func initLogging() {
 	openLogFile()
 	go logFileWatcher();
 }
+
+
+// Log allways
+func logInf(msg string, args ... any) { log.Printf(msg, args...) }
+
+// Log on error (no special proccessing right now)
+func logErr(msg string, args ... any) { log.Printf(msg, args...) }
+
+// Log if debug enabled ("verbose message log" in settings tab)
+func logDbg(msg string, args ... any) {
+	if globalSettings.DEBUG {
+		log.Printf(msg, args...)
+	}
+}
