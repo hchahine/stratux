@@ -28,13 +28,9 @@ arm_64bit=1
 # set UART baud rate
 init_uart_baud=115200
 
-# disables control of a PoE HAT fan through I2C (on pins ID_SD & ID_SC)
-disable_poe_fan=1
-
 # rainbow splash screen will not be shown on boot
 disable_splash=1
 
-[pi4]
 # Run as fast as firmware / board allows
 arm_boost=1
 
