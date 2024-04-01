@@ -1184,6 +1184,7 @@ type settings struct {
 	SensorQuaternion     [4]float64 // Quaternion mapping from sensor frame to aircraft frame
 	C, D                 [3]float64 // IMU Accel, Gyro zero bias
 	PPM                  int
+	Dump1090Gain         float64 // SDR RTL ES Gain
 	AltitudeOffset       int
 	OwnshipModeS         string
 	WatchList            string
@@ -1297,6 +1298,7 @@ func defaultSettings() {
 	globalSettings.UAT_Enabled = false
 	globalSettings.ES_Enabled = true
 	globalSettings.OGN_Enabled = true
+	globalSettings.Dump1090Gain = 37.2
 	globalSettings.APRS_Enabled = false
 	globalSettings.GPS_Enabled = true
 	globalSettings.IMU_Sensor_Enabled = true
