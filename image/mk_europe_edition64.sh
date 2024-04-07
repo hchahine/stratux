@@ -48,8 +48,8 @@ truncate -s 3000M $IMGNAME || die "Image resize failed"
 lo=$(losetup -f)
 losetup $lo $IMGNAME
 partprobe $lo
-e2fsck -f ${lo}p2
-parted ${lo} resizepart 2 100%
+e2fsck -y -f ${lo}p2
+parted --script ${lo} resizepart 2 100%
 partprobe $lo || die "Partprobe failed failed"
 resize2fs -p ${lo}p2 || die "FS resize failed"
 
@@ -94,11 +94,13 @@ resize2fs -p ${lo}p2 $minsize
 
 zerofree ${lo}p2 # for smaller zip
 
-bytesEnd=$((partoffset + $minsizeBytes))
-echo "Yes" | parted  ${lo} resizepart 2 ${bytesEnd}B yes
-partprobe $lo
+bytesEnd=$(($partoffset + $minsizeBytes))
 
 losetup -d ${lo}
+
+# parted --script $IMGNAME resizepart 2 ${bytesEnd}B Yes doesn't seem tow rok any more... echo yes | parted .. neither. So we re-create partition with proper size
+parted --script $IMGNAME rm 2
+parted --script $IMGNAME unit B mkpart primary $partoffset $bytesEnd
 truncate -s $(($bytesEnd + 4096)) $IMGNAME
 
 

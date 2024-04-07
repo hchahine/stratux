@@ -27,7 +27,7 @@ apt update
 apt clean
 
 PATH=/root/fake:$PATH apt install --yes libjpeg62-turbo-dev libconfig9 rpi-update dnsmasq git cmake \
-    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python3-serial jq ifplugd iptables
+    libusb-1.0-0-dev build-essential autoconf libtool i2c-tools libfftw3-dev libncurses-dev python3-serial jq ifplugd iptables libttspico-utils
 
 # Downgrade to older brcm wifi firmware - the new one seems to be buggy in AP+Client mode
 # see https://github.com/raspberrypi/firmware/issues/1463
@@ -182,7 +182,8 @@ cp -f rc.local /etc/rc.local
 echo -e "\n/dev/sda1             /var/log        auto    defaults,nofail,noatime,x-systemd.device-timeout=1ms  0       2" >> /etc/fstab
 
 #disable serial console, disable rfkill state restore, enable wifi on boot
-sed -i /boot/cmdline.txt -e "s/console=serial0,[0-9]\+ /systemd.restore_state=0 rfkill.default_state=1 /"
+sed -i /boot/firmware/cmdline.txt -e "s/console=serial0,[0-9]\+ /systemd.restore_state=0 rfkill.default_state=1 /"
+sed -i 's/quiet//g' /boot/firmware/cmdline.txt
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
@@ -198,12 +199,13 @@ rm -r /root/stratux
 # Uninstall packages we don't need, clean up temp stuff
 rm -rf /root/go /root/go_path /root/.cache
 
-PATH=/root/fake:$PATH apt remove --purge --yes alsa-ucm-conf alsa-topology-conf bluez bluez-firmware cifs-utils cmake cmake-data \
-    v4l-utils rsync pigz pi-bluetooth cpp cpp-10  zlib1g-dev
+PATH=/root/fake:$PATH apt autoremove --purge --yes alsa-ucm-conf alsa-topology-conf bluez bluez-firmware cifs-utils cmake cmake-data \
+    v4l-utils rsync pigz pi-bluetooth cpp zlib1g-dev network-manager apparmor autotools-dev automake autoconf build-essential gcc-12 \
+    git mkvtoolnix gdb
 
-PATH=/root/fake:$PATH apt autoremove --purge --yes
 
 apt clean
+
 rm -rf /var/cache/apt
 
 rm -r /root/fake
