@@ -48,11 +48,11 @@ apt clean
 
 systemctl enable ssh
 systemctl disable dnsmasq # we start it manually on respective interfaces
-systemctl disable dhcpcd
 systemctl disable hciuart
 systemctl disable triggerhappy
 systemctl disable wpa_supplicant
 systemctl disable systemd-timesyncd # We sync time with GPS. Make sure there is no conflict if we have internet connection
+systemctl disable resize2fs_once
 
 
 systemctl disable apt-daily.timer
@@ -105,7 +105,7 @@ cd /root && rm -rf kalibrate-rtl
 
 # Prepare wiringpi for ogn trx via GPIO
 cd /root && git clone https://github.com/WiringPi/WiringPi.git
-cd WiringPi && ./build
+cd WiringPi && WIRINGPI_SUDO="" ./build
 cd /root && rm -r WiringPi
 
 # Debian seems to ship with an invalid pkgconfig for librtlsdr.. fix it:
@@ -114,9 +114,8 @@ cd /root && rm -r WiringPi
 
 # Install golang
 cd /root
-wget https://go.dev/dl/go1.20.1.linux-arm64.tar.gz
-tar xzf go1.20.1.linux-arm64.tar.gz
-rm go1.20.1.linux-arm64.tar.gz
+wget -O- https://go.dev/dl/go1.20.1.linux-arm64.tar.gz | tar xz
+
 
 # Compile stratux
 cd /root/stratux
@@ -134,7 +133,7 @@ cd /root/stratux
 
 rm -r /root/go_path/* # safe space again..
 make install
-rm -r /root/.cache
+rm -rf /root/.cache
 
 ##### Some device setup - copy files from image directory ####
 cd /root/stratux/image
@@ -159,7 +158,7 @@ cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
 cp -f modules.txt /etc/modules
 
 #boot settings
-cp -f config.txt /boot/
+cp -f config.txt /boot/firmware/
 
 #Create default pi password as in old times, and disable initial user creation
 systemctl disable userconfig
@@ -173,7 +172,7 @@ touch /var/grow_root_part
 mkdir -p /overlay/robase # prepare so we can bind-mount root even if overlay is disabled
 
 # So we can import network settings if needed
-touch /boot/.stratux-first-boot
+touch /boot/firmware/.stratux-first-boot
 
 #startup scripts
 cp -f rc.local /etc/rc.local
@@ -187,6 +186,9 @@ sed -i 's/quiet//g' /boot/firmware/cmdline.txt
 
 #Set the keyboard layout to US.
 sed -i /etc/default/keyboard -e "/^XKBLAYOUT/s/\".*\"/\"us\"/"
+
+# Legacy stratux.conf path so it can be found easily..
+ln -s /boot/firmware/stratux.conf /boot/stratux.conf
 
 # Set hostname
 echo "stratux" > /etc/hostname

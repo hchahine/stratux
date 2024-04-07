@@ -27,13 +27,13 @@ chmod 644 /lib/systemd/system/stratux.service
 ln -fs /lib/systemd/system/stratux.service /etc/systemd/system/multi-user.target.wants/stratux.service
 
 #boot config
-cp -f config.txt /boot/config.txt
+cp -f config.txt /boot/firmware/config.txt
 
 #rc.local
 cp -f rc.local /etc/
 
 #disable serial console
-sed -i /boot/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
+sed -i /boot/firmware/cmdline.txt -e "s/console=ttyAMA0,[0-9]\+ //"
 
 #modprobe.d blacklist
 cp -f rtl-sdr-blacklist.conf /etc/modprobe.d/
@@ -63,11 +63,6 @@ cp -f overlayctl init-overlay /sbin/
 systemctl disable apt-daily.timer
 systemctl disable apt-daily-upgrade.timer
 
-
-# cleanup after switch to overlayfs: remove tmpfs lines from fstab, move stratux.conf to /boot and potentially enable the overlay depending on user settings
-cat /etc/fstab | grep -v tmpfs > /tmp/fstab
-mv /tmp/fstab /etc/fstab
-mv /etc/stratux.conf /boot/stratux.conf
 
 # Rewrite network settings to make sure the format is up to date for next boot
 /opt/stratux/bin/gen_gdl90 -write-network-config
