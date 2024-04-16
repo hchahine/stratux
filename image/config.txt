@@ -54,3 +54,6 @@ dtparam=act_led_activelow=off
 
 # Stratux: set UART baud rate
 init_uart_baud=115200
+
+# Stratux: remove USB 500mA limit
+usb_max_current_enable=1
