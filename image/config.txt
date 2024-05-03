@@ -55,8 +55,14 @@ dtparam=act_led_activelow=off
 # Stratux: set UART baud rate
 init_uart_baud=115200
 
-# Stratux: remove USB current limit on Pi2/3/4 (tbc.)
+# Stratux: remove USB current limit on Pi2/3/4
 max_usb_current=1
 
-# Stratux: remove USB current limit on Pi5 (tbc.)
+# Stratux: remove USB current limit on Pi5
 usb_max_current_enable=1
+
+# Stratux: disable the rainbow splash screen on boot
+disable_splash=1
+
+# Stratux: control of a PoE HAT fan through I2C
+disable_poe_fan=1
