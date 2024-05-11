@@ -451,10 +451,8 @@ func initGPSSerial() bool {
 		logDbg("GPS - finished writing u-blox GPS config to %s. Opening port to test connection.\n", device)
 	} else if globalStatus.GPS_detected_type == GPS_TYPE_SOFTRF_DONGLE {
 		p.Write([]byte("@GNS 0x7\r\n")) // enable SBAS
-		p.Flush()
 		time.Sleep(250* time.Millisecond) // Otherwise second command doesn't seem to work?
 		p.Write([]byte("@BSSL 0x2D\r\n")) // enable GNGSV
-		p.Flush()
 	}
 	p.Close()
 
@@ -615,7 +613,6 @@ func configureOgnTracker() {
 	writeUblox8ConfigCommands(serialPort)
 	writeUbloxGenericCommands(5, serialPort)
 
-	serialPort.Flush()
 
 	globalStatus.GPS_detected_type = GPS_TYPE_OGNTRACKER
 }
@@ -625,7 +622,6 @@ func requestGxAirComTrackerConfig() {
 		return
 	}
 	serialPort.Write([]byte(appendNmeaChecksum("$PGXCF,?") + "\r\n")) // Request configuration
-	serialPort.Flush()
 }
 
 func configureGxAirComTracker() {
@@ -652,7 +648,6 @@ func configureGxAirComTracker() {
 	fullSentence := appendNmeaChecksum(requiredSentence)
 	log.Printf("Configuring GxAirCom Tracker with: " + fullSentence)
 	serialPort.Write([]byte(fullSentence + "\r\n")) // Set configuration
-	serialPort.Flush()
 	gxAirComTrackerConfigured = false
 }
 
@@ -1943,7 +1938,6 @@ func configureOgnTrackerFromSettings() {
 
 	serialPort.Write([]byte(getOgnTrackerConfigString()))
 	serialPort.Write([]byte(getOgnTrackerConfigQueryString())) // re-read settings from tracker
-	serialPort.Flush()
 }
 
 var gnssBaroAltDiffs = make(map [int]int)
