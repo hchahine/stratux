@@ -356,8 +356,8 @@ func initGPSSerial() bool {
 			log.Printf("Finished writing SiRF GPS config to %s. Opening port to test connection.\n", device)
 		}
 	} else if (
-		globalStatus.GPS_detected_type == GPS_TYPE_UBX6or7  ||
-	    globalStatus.GPS_detected_type == GPS_TYPE_UBX8  	|| 
+		globalStatus.GPS_detected_type == GPS_TYPE_UBX6or7  	||
+	    	globalStatus.GPS_detected_type == GPS_TYPE_UBX8  	|| 
 		globalStatus.GPS_detected_type == GPS_TYPE_UBX9  	||
 		globalStatus.GPS_detected_type == GPS_TYPE_UBX10 	||
 		globalStatus.GPS_detected_type == GPS_TYPE_UBX_GEN ) {
@@ -403,7 +403,8 @@ func initGPSSerial() bool {
 			p.Write(makeUBXCFG(0x06, 0x3E, uint16(len(cfgGnss)), cfgGnss))
 		}
 
-		writeUbloxGenericCommands(10, p)
+		//writeUbloxGenericCommands(10, p)
+		writeUbloxGenericCommands(5, p) // HANI: Change update rate to 5
 
 		// Reconfigure serial port.
 		cfg := make([]byte, 20)
@@ -553,7 +554,10 @@ func writeUbloxGenericCommands(navrate uint16, p *serial.Port) {
 
 	// UBX-CFG-NMEA (change NMEA protocol version to 4.0 extended)
 	p.Write(makeUBXCFG(0x06, 0x17, 20, []byte{0x00, 0x40, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
-
+	
+	// UBX-CFG-PMS
+	p.Write(makeUBXCFG(0x06, 0x86, 8, []byte{[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]}))	//HANI: Full Power Mode
+	
 	// UBX-CFG-NAV5                           |mask1...|  dyn
 	p.Write(makeUBXCFG(0x06, 0x24, 36, []byte{0x01, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})) // Dynamic platform model: airborne with <2g acceleration
 
