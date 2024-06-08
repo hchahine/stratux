@@ -126,7 +126,7 @@ function MapCtrl($rootScope, $scope, $state, $http, $interval, craftService) {
 			openaip
 		],
 		view: new ol.View({
-			center: ol.proj.fromLonLat([10.0, 52.0]),
+			center: ol.proj.fromLonLat([144.96, -37.82]),
 			zoom: 4,
 			enableRotation: false
 		})
