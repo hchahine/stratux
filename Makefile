@@ -3,7 +3,7 @@ ifeq "$(CIRCLECI)" "true"
 	BUILDINFO=
 	PLATFORMDEPENDENT=
 else
-	LFLAGS=-X main.stratuxVersion="v1.6r1-eu031-vp" -X main.stratuxBuild=`git log -n 1 --pretty=%H`  
+	LFLAGS=-X main.stratuxVersion="v1.6r1-au031-hc" -X main.stratuxBuild=`git log -n 1 --pretty=%H`  #HANI: Changed version to au and hc
 	BUILDINFO=-ldflags "$(LFLAGS)"
 	BUILDINFO_STATIC=-ldflags "-extldflags -static $(LFLAGS)"
 	PLATFORMDEPENDENT=fancontrol
@@ -106,8 +106,8 @@ optinstall: www ogn/ddb.json
 
 
 install: optinstall
-	#-$(STRATUX_HOME)/bin/fancontrol remove
-	#$(STRATUX_HOME)/bin/fancontrol install
+	-$(STRATUX_HOME)/bin/fancontrol remove #HANI: Add fan control back in
+	$(STRATUX_HOME)/bin/fancontrol install #HANI: Add fan control back in
 
 	# System configuration
 	cp image/10-stratux.rules /etc/udev/rules.d/10-stratux.rules
